@@ -43,4 +43,5 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Communications',
     ],
+    use_2to3=True,
 )
