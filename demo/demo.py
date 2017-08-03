@@ -785,9 +785,10 @@ try:
     adapter.add_signal_receiver(dump_signal,
                                 bt_manager.BTAdapter.SIGNAL_DEVICE_FOUND,
                                 None)
-    adapter.add_signal_receiver(dump_signal,
-                                bt_manager.BTAdapter.SIGNAL_PROPERTY_CHANGED,
-                                None)
+    if (adapter._version <= bt_manager.BTAdapter.BLUEZ4_VERSION):
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_PROPERTY_CHANGED,
+                                    None)
 except dbus.exceptions.DBusException:
     print 'Unable to complete:', sys.exc_info()
 

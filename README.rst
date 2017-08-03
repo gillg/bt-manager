@@ -30,6 +30,10 @@ Installing the RTP/SBC codec (this must be done first):
 Note: the default platform is x86 (mmx).  To build for a different platform e.g., armv6
 then run ``sudo make -C codecs install PLATFORM=armv6`` instead.
 
+Prerequisites
+
+    sudo apt-get install python-pip libffi-dev
+
 Install the python library by running:
 
     pip install BT-Manager
