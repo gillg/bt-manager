@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import dbus
 from interface import BTInterface
 from manager import BTManager
 
@@ -107,6 +108,18 @@ class BTAdapter(BTInterface):
     :signal DeviceDisappeared(signal_name, user_arg, device_path):
         Signal notifying when a device is now out-of-range
     """
+    SIGNAL_PROPERTIES_CHANGED = 'PropertiesChanged'
+    """
+    :signal PropertiesChanged(sig_name, user_arg, prop_name, prop_value):
+        Signal notifying when a property has changed. (Bluez 5)
+    """
+    SIGNAL_PROPERTY_CHANGED = 'PropertyChanged'
+    """
+    :signal PropertyChanged(sig_name, user_arg, prop_name, prop_value):
+        Signal notifying when a property has changed. (Bluez 4)
+    """
+    ADAPTER_INTERFACE_BLUEZ4 = 'org.bluez.Adapter'
+    ADAPTER_INTERFACE_BLUEZ5 = 'org.bluez.Adapter1'
 
     def __init__(self, adapter_path=None, adapter_id=None):
         manager = BTManager()
@@ -115,11 +128,88 @@ class BTAdapter(BTInterface):
                 adapter_path = manager.default_adapter()
             else:
                 adapter_path = manager.find_adapter(adapter_id)
-        BTInterface.__init__(self, adapter_path, 'org.bluez.Adapter')
+
+        self._get_version()
+        if (self._version <= self.BLUEZ4_VERSION):
+            BTInterface.__init__(self, adapter_path, BTAdapter.ADAPTER_INTERFACE_BLUEZ4)
+            self._properties = self._interface.GetProperties().keys()
+            self._register_signal_name(BTAdapter.SIGNAL_PROPERTY_CHANGED)
+
+        else:
+            BTInterface.__init__(self, adapter_path, BTAdapter.ADAPTER_INTERFACE_BLUEZ5)
+
         self._register_signal_name(BTAdapter.SIGNAL_DEVICE_FOUND)
         self._register_signal_name(BTAdapter.SIGNAL_DEVICE_REMOVED)
         self._register_signal_name(BTAdapter.SIGNAL_DEVICE_CREATED)
         self._register_signal_name(BTAdapter.SIGNAL_DEVICE_DISAPPEARED)
+
+        if (self._version > self.BLUEZ4_VERSION):
+            self._init_properties()
+
+    def _init_properties(self):
+        self._props_interface = dbus.Interface(self._object, 'org.freedesktop.DBus.Properties')
+        self._properties = list(self._props_interface.GetAll(BTAdapter.ADAPTER_INTERFACE_BLUEZ5).keys())
+        self._register_signal_name(BTAdapter.SIGNAL_PROPERTIES_CHANGED)
+
+    def get_property(self, name=None):
+        """
+        Helper to get a property value by name or all
+        properties as a dictionary.
+
+        See also :py:meth:`set_property`
+
+        :param str name: defaults to None which means all properties
+            in the object's dictionary are returned as a dict.
+            Otherwise, the property name key is used and its value
+            is returned.
+        :return: Property value by property key, or a dictionary of
+            all properties
+        :raises KeyError: if the property key is not found in the
+            object's dictionary
+        :raises dbus.Exception: org.bluez.Error.DoesNotExist
+        :raises dbus.Exception: org.bluez.Error.InvalidArguments
+        """
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            if (name):
+                return self._interface.GetProperties()[name]
+            else:
+                return self._interface.GetProperties()
+
+        #BlueZ 5
+        else:
+            if (name):
+                return self._props_interface.Get(BTAdapter.ADAPTER_INTERFACE_BLUEZ5, name)
+            else:
+                return self._props_interface.GetAll(BTAdapter.ADAPTER_INTERFACE_BLUEZ5)
+
+    def set_property(self, name, value):
+        """
+        Helper to set a property value by name, translating to correct
+        dbus type
+
+        See also :py:meth:`get_property`
+
+        :param str name: The property name in the object's dictionary
+            whose value shall be set.
+        :param value: Properties new value to be assigned.
+        :return:
+        :raises KeyError: if the property key is not found in the
+            object's dictionary
+        :raises dbus.Exception: org.bluez.Error.DoesNotExist
+        :raises dbus.Exception: org.bluez.Error.InvalidArguments
+        """
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            typeof = type(self.get_property(name))
+            self._interface.SetProperty(name,
+                                        translate_to_dbus_type(typeof, value))
+
+        #BlueZ 5
+        else:
+            typeof = type(self.get_property(name))
+            self._props_interface.Set(BTAdapter.ADAPTER_INTERFACE_BLUEZ5, name,
+                                        translate_to_dbus_type(typeof, value))
 
     def start_discovery(self):
         """

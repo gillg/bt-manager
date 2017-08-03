@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import dbus.service
-import gobject
+from gi.repository import GObject
 import pprint
 import os
 
@@ -192,16 +192,16 @@ class SBCAudioCodec(GenericEndpoint):
 
     def _install_transport_ready(self):
         if ('r' in self.access_type):
-            io_event = gobject.IO_IN
+            io_event = GObject.IO_IN
         else:
-            io_event = gobject.IO_OUT
+            io_event = GObject.IO_OUT
 
-        self.tag = gobject.io_add_watch(self.fd, io_event,
+        self.tag = GObject.io_add_watch(self.fd, io_event,
                                         self._transport_ready_handler)
 
     def _uninstall_transport_ready(self):
         if (self.tag):
-            gobject.source_remove(self.tag)
+            GObject.source_remove(self.tag)
             self.tag = None
 
     def register_transport_ready_event(self, user_cb, user_arg):

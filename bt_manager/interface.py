@@ -67,12 +67,25 @@ class BTSimpleInterface:
         implementation of a bluez interface which has no signals or
         properties.
     """
+
+    BLUEZ_DBUS_OBJECT = 'org.bluez'
+    BLUEZ4_VERSION = 1.2
+
     def __init__(self, path, addr):
         self._dbus_addr = addr
         self._bus = dbus.SystemBus()
-        self._object = self._bus.get_object('org.bluez', path)
+        self._get_version()
+        self._object = self._bus.get_object(BTSimpleInterface.BLUEZ_DBUS_OBJECT, path)
         self._interface = dbus.Interface(self._object, addr)
         self._path = path
+
+    def _get_version(self):
+        if (self._version is None):
+            self._bus = dbus.SystemBus()
+            dbus_infos = self._bus.get_object('org.freedesktop.DBus', '/')
+            interface = dbus.Interface(dbus_infos, 'org.freedesktop.DBus')
+            self._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
+            #interface.GetConnectionUnixProcessID(BTSimpleInterface.BLUEZ_DBUS_OBJECT)
 
 
 # This class is not intended to be instantiated directly and should be
@@ -92,18 +105,10 @@ class BTInterface(BTSimpleInterface):
         and properties.
     """
 
-    SIGNAL_PROPERTY_CHANGED = 'PropertyChanged'
-    """
-    :signal PropertyChanged(sig_name, user_arg, prop_name, prop_value):
-        Signal notifying when a property has changed.
-    """
-
     def __init__(self, path, addr):
         BTSimpleInterface.__init__(self, path, addr)
         self._signals = {}
         self._signal_names = []
-        self._properties = self._interface.GetProperties().keys()
-        self._register_signal_name(BTInterface.SIGNAL_PROPERTY_CHANGED)
 
     def _register_signal_name(self, name):
         """
@@ -185,10 +190,7 @@ class BTInterface(BTSimpleInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        if (name):
-            return self._interface.GetProperties()[name]
-        else:
-            return self._interface.GetProperties()
+        raise NotImplementedError("Must override get_property")
 
     def set_property(self, name, value):
         """
@@ -206,9 +208,7 @@ class BTInterface(BTSimpleInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        typeof = type(self.get_property(name))
-        self._interface.SetProperty(name,
-                                    translate_to_dbus_type(typeof, value))
+        return
 
     def __getattr__(self, name):
         """Override default getattr behaviours to allow DBus object
@@ -232,4 +232,4 @@ class BTInterface(BTSimpleInterface):
 
     def __str__(self):
         """Stringify the Dbus interface properties in a nice format"""
-        return pprint.pformat(self._interface.GetProperties())
+        return pprint.pformat(self.get_property())

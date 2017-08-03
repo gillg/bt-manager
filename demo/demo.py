@@ -5,7 +5,7 @@ import bt_manager
 import sys
 import dbus
 import dbus.mainloop.glib
-import gobject
+from gi.repository import GObject
 import signal
 from collections import namedtuple
 
@@ -762,12 +762,12 @@ def invoke_bt_command(text):
 
 
 def timeout_handler(signum, frame):
-    while gobject.MainLoop().get_context().pending():
-        gobject.MainLoop().get_context().iteration(False)
+    while GObject.MainLoop().get_context().pending():
+        GObject.MainLoop().get_context().iteration(False)
 
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-gobject.threads_init()
+GObject.threads_init()
 signal.signal(signal.SIGALRM, timeout_handler)
 signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)
 
