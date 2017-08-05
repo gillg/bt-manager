@@ -101,13 +101,31 @@ class BTDevice(BTGenericDevice):
     :signal NodeRemoved(signal_name, user_arg, node_path): Signal notifying
         when a device node has been removed.
     """
+    SIGNAL_PROPERTIES_CHANGED = 'PropertiesChanged'
+    """
+    :signal PropertiesChanged(sig_name, user_arg, prop_name, prop_value):
+        Signal notifying when a property has changed. (Bluez 5)
+    """
+    DEVICE_INTERFACE_BLUEZ4 = 'org.bluez.Device'
+    DEVICE_INTERFACE_BLUEZ5 = 'org.bluez.Device1'
 
     def __init__(self, *args, **kwargs):
-        BTGenericDevice.__init__(self, addr='org.bluez.Device',
-                                 *args, **kwargs)
-        self._register_signal_name(BTDevice.SIGNAL_DISCONNECT_REQUESTED)
-        self._register_signal_name(BTDevice.SIGNAL_NODE_CREATED)
-        self._register_signal_name(BTDevice.SIGNAL_NODE_REMOVED)
+        self._get_version()
+        if (self._version <= self.BLUEZ4_VERSION):
+            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ4,
+                                             *args, **kwargs)
+            self._register_signal_name(BTDevice.SIGNAL_DISCONNECT_REQUESTED)
+            self._register_signal_name(BTDevice.SIGNAL_NODE_CREATED)
+            self._register_signal_name(BTDevice.SIGNAL_NODE_REMOVED)
+
+        else:
+            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
+                                             *args, **kwargs)
+
+    def _init_properties(self):
+        self._props_interface = dbus.Interface(self._object, BTInterface.DBUS_PROPERTIES)
+        self._properties = list(self._props_interface.GetAll(self.DEVICE_INTERFACE_BLUEZ5).keys())
+        self._register_signal_name(self.SIGNAL_PROPERTIES_CHANGED)
 
     def discover_services(self, pattern=''):
         """

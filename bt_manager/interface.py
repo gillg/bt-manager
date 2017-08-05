@@ -104,6 +104,7 @@ class BTInterface(BTSimpleInterface):
         implementation of a bluez interface which has both signals
         and properties.
     """
+    DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
     def __init__(self, path, addr):
         BTSimpleInterface.__init__(self, path, addr)
@@ -122,7 +123,7 @@ class BTInterface(BTSimpleInterface):
         """
         self._signal_names.append(name)
 
-    def add_signal_receiver(self, callback_fn, signal, user_arg):
+    def add_signal_receiver(self, callback_fn, signal, user_arg, addr=None):
         """
         Add a signal receiver callback with user argument
 
@@ -140,11 +141,12 @@ class BTInterface(BTSimpleInterface):
             not registered
         """
         if (signal in self._signal_names):
+            addr = self._dbus_addr if addr is None else addr
             s = Signal(signal, callback_fn, user_arg)
             self._signals[signal] = s
             self._bus.add_signal_receiver(s.signal_handler,
                                           signal,
-                                          dbus_interface=self._dbus_addr,
+                                          dbus_interface=addr,
                                           path=self._path)
         else:
             raise BTSignalNameNotRecognisedException

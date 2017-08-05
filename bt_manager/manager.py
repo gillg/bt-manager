@@ -132,8 +132,10 @@ class BTManager(BTInterface):
 
         #BlueZ 5
         else:
-            return ''
-            #foreach( self._interface.GetManagedObjects() as key => obj) if pattern in key or patern = obj['org.bluez.Adapter1']['Address']
+            for (key, object) in list(self._interface.GetManagedObjects()):
+                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
+                    if pattern in key or object[BTAdapter.ADAPTER_INTERFACE_BLUEZ5]['Address'] == pattern:
+                        return key
 
     def list_adapters(self):
         """
@@ -151,7 +153,9 @@ class BTManager(BTInterface):
 
         #BlueZ 5
         else:
-            adapters = list(self._interface.GetManagedObjects().keys())
-            # Remove first item (not a real adapter)
-            del adapters[0]
+            objects = list(self._interface.GetManagedObjects())
+            adapters = []
+            for (key, object) in objects:
+                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
+                    adapters.push(key)
             return adapters

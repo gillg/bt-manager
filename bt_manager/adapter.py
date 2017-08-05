@@ -122,32 +122,31 @@ class BTAdapter(BTInterface):
     ADAPTER_INTERFACE_BLUEZ5 = 'org.bluez.Adapter1'
 
     def __init__(self, adapter_path=None, adapter_id=None):
-        manager = BTManager()
+        self._manager = BTManager()
         if (adapter_path is None):
             if (adapter_id is None):
-                adapter_path = manager.default_adapter()
+                adapter_path = self._manager.default_adapter()
             else:
-                adapter_path = manager.find_adapter(adapter_id)
+                adapter_path = self._manager.find_adapter(adapter_id)
 
         self._get_version()
         if (self._version <= self.BLUEZ4_VERSION):
             BTInterface.__init__(self, adapter_path, BTAdapter.ADAPTER_INTERFACE_BLUEZ4)
             self._properties = self._interface.GetProperties().keys()
             self._register_signal_name(BTAdapter.SIGNAL_PROPERTY_CHANGED)
+            self._register_signal_name(BTAdapter.SIGNAL_DEVICE_FOUND)
+            self._register_signal_name(BTAdapter.SIGNAL_DEVICE_REMOVED)
+            self._register_signal_name(BTAdapter.SIGNAL_DEVICE_CREATED)
+            self._register_signal_name(BTAdapter.SIGNAL_DEVICE_DISAPPEARED)
 
         else:
             BTInterface.__init__(self, adapter_path, BTAdapter.ADAPTER_INTERFACE_BLUEZ5)
-
-        self._register_signal_name(BTAdapter.SIGNAL_DEVICE_FOUND)
-        self._register_signal_name(BTAdapter.SIGNAL_DEVICE_REMOVED)
-        self._register_signal_name(BTAdapter.SIGNAL_DEVICE_CREATED)
-        self._register_signal_name(BTAdapter.SIGNAL_DEVICE_DISAPPEARED)
 
         if (self._version > self.BLUEZ4_VERSION):
             self._init_properties()
 
     def _init_properties(self):
-        self._props_interface = dbus.Interface(self._object, 'org.freedesktop.DBus.Properties')
+        self._props_interface = dbus.Interface(self._object, BTInterface.DBUS_PROPERTIES)
         self._properties = list(self._props_interface.GetAll(BTAdapter.ADAPTER_INTERFACE_BLUEZ5).keys())
         self._register_signal_name(BTAdapter.SIGNAL_PROPERTIES_CHANGED)
 

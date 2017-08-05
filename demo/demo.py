@@ -773,22 +773,34 @@ signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)
 
 try:
     adapter = bt_manager.BTAdapter()
-    adapter.add_signal_receiver(dump_signal,
-                                bt_manager.BTAdapter.SIGNAL_DEVICE_CREATED,
-                                None)
-    adapter.add_signal_receiver(dump_signal,
-                                bt_manager.BTAdapter.SIGNAL_DEVICE_REMOVED,
-                                None)
-    adapter.add_signal_receiver(dump_signal,
-                                bt_manager.BTAdapter.SIGNAL_DEVICE_DISAPPEARED,
-                                None)
-    adapter.add_signal_receiver(dump_signal,
-                                bt_manager.BTAdapter.SIGNAL_DEVICE_FOUND,
-                                None)
     if (adapter._version <= bt_manager.BTAdapter.BLUEZ4_VERSION):
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_DEVICE_CREATED,
+                                    None)
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_DEVICE_REMOVED,
+                                    None)
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_DEVICE_DISAPPEARED,
+                                    None)
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_DEVICE_FOUND,
+                                    None)
         adapter.add_signal_receiver(dump_signal,
                                     bt_manager.BTAdapter.SIGNAL_PROPERTY_CHANGED,
                                     None)
+    else:
+        adapter._manager.add_signal_receiver(dump_signal,
+                                    bt_manager.BTManager.SIGNAL_INTERFACES_ADDED,
+                                    None)
+        adapter._manager.add_signal_receiver(dump_signal,
+                                    bt_manager.BTManager.SIGNAL_INTERFACES_REMOVED,
+                                    None)
+        adapter.add_signal_receiver(dump_signal,
+                                    bt_manager.BTAdapter.SIGNAL_PROPERTIES_CHANGED,
+                                    None,
+                                    addr=BTInterface.DBUS_PROPERTIES)
+
 except dbus.exceptions.DBusException:
     print 'Unable to complete:', sys.exc_info()
 
