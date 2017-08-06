@@ -49,6 +49,10 @@ class BTManager(BTInterface):
     :signal PropertyChanged(sig_name, user_arg, prop_name, prop_value):
         Signal notifying when a property has changed. (Bluez 4)
     """
+    ADAPTER_INTERFACE_BLUEZ5 = 'org.bluez.Adapter1'
+    """
+    @TODO remove this var, already prensent in BTAdapter
+    """
 
     def __init__(self):
         self._get_version()
@@ -132,9 +136,9 @@ class BTManager(BTInterface):
 
         #BlueZ 5
         else:
-            for (key, object) in list(self._interface.GetManagedObjects()):
-                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
-                    if pattern in key or object[BTAdapter.ADAPTER_INTERFACE_BLUEZ5]['Address'] == pattern:
+            for (key, object) in self._interface.GetManagedObjects().items():
+                if self.ADAPTER_INTERFACE_BLUEZ5 in object:
+                    if pattern in key or object[self.ADAPTER_INTERFACE_BLUEZ5]['Address'] == pattern:
                         return key
 
     def list_adapters(self):
@@ -153,9 +157,9 @@ class BTManager(BTInterface):
 
         #BlueZ 5
         else:
-            objects = list(self._interface.GetManagedObjects())
+            objects = self._interface.GetManagedObjects().items()
             adapters = []
             for (key, object) in objects:
-                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
-                    adapters.push(key)
+                if self.ADAPTER_INTERFACE_BLUEZ5 in object:
+                    adapters.append(key)
             return adapters

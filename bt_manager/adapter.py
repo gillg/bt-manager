@@ -120,6 +120,8 @@ class BTAdapter(BTInterface):
     """
     ADAPTER_INTERFACE_BLUEZ4 = 'org.bluez.Adapter'
     ADAPTER_INTERFACE_BLUEZ5 = 'org.bluez.Adapter1'
+    DEVICE_INTERFACE_BLUEZ5 = 'org.bluez.Device1'
+    AGENT_INTERFACE = 'org.bluez.AgentManager1'
 
     def __init__(self, adapter_path=None, adapter_id=None):
         self._manager = BTManager()
@@ -141,9 +143,9 @@ class BTAdapter(BTInterface):
 
         else:
             BTInterface.__init__(self, adapter_path, BTAdapter.ADAPTER_INTERFACE_BLUEZ5)
-
-        if (self._version > self.BLUEZ4_VERSION):
             self._init_properties()
+            obj = self._bus.get_object(BTSimpleInterface.BLUEZ_DBUS_OBJECT, path)
+            self._agent_interface = dbus.Interface(obj, self.AGENT_INTERFACE)
 
     def _init_properties(self):
         self._props_interface = dbus.Interface(self._object, BTInterface.DBUS_PROPERTIES)
@@ -257,7 +259,15 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        return self._interface.FindDevice(dev_id)
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            return self._interface.FindDevice(dev_id)
+        #BlueZ 5
+        else:
+            for (key, object) in self._interface.GetManagedObjects().items():
+                if self.DEVICE_INTERFACE_BLUEZ5 in object:
+                    if object[self.DEVICE_INTERFACE_BLUEZ5]['Address'] == pattern:
+                        return key
 
     def list_devices(self):
         """
@@ -269,7 +279,17 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.Failed
         :raises dbus.Exception: org.bluez.Error.OutOfMemory
         """
-        return self._interface.ListDevices()
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            return self._interface.ListDevices()
+        #BlueZ 5
+        else:
+            objects = self._interface.GetManagedObjects().items()
+            devices = []
+            for (key, object) in objects:
+                if self.DEVICE_INTERFACE_BLUEZ5 in object:
+                    devices.append(key)
+            return devices
 
     def create_paired_device(self, dev_id, agent_path,
                              capability, cb_notify_device, cb_notify_error):
@@ -308,11 +328,16 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.Failed
         """
-        return self._interface.CreatePairedDevice(dev_id,
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            return self._interface.CreatePairedDevice(dev_id,
                                                   agent_path,
                                                   capability,
                                                   reply_handler=cb_notify_device,  # noqa
                                                   error_handler=cb_notify_error)   # noqa
+        #BlueZ 5  TODO !?
+        else:
+            pass
 
     def remove_device(self, dev_path):
         """
@@ -346,7 +371,12 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.AlreadyExists
         """
-        return self._interface.RegisterAgent(path, capability)
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            return self._interface.RegisterAgent(path, capability)
+        #BlueZ 5
+        else:
+            return self._agent_interface.RegisterAgent(path, capability)
 
     def unregister_agent(self, path):
         """
@@ -359,4 +389,9 @@ class BTAdapter(BTInterface):
         :return:
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         """
-        return self._interface.UnregisterAgent(path)
+        #BlueZ 4
+        if (self._version <= self.BLUEZ4_VERSION):
+            return self._interface.UnregisterAgent(path)
+        #BlueZ 5
+        else:
+            return self._agent_interface.UnregisterAgent(path)
