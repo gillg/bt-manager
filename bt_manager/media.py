@@ -34,7 +34,11 @@ class BTMedia(BTSimpleInterface):
             adapter_path = manager.default_adapter()
         else:
             adapter_path = manager.find_adapter(adapter_id)
-        BTSimpleInterface.__init__(self, adapter_path, 'org.bluez.Media')
+
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            BTSimpleInterface.__init__(self, adapter_path, 'org.bluez.Media')
+        else:
+            BTSimpleInterface.__init__(self, adapter_path, 'org.bluez.Media1')
 
     def register_endpoint(self, path, properties):
         """
@@ -77,6 +81,34 @@ class BTMedia(BTSimpleInterface):
         :return:
         """
         self._interface.UnregisterEndpoint(path)
+
+    def register_player(self, path, properties):
+        """
+        Unregister sender end point.
+
+        :param: str path: a freely definable path name for
+            registering the endpoint e.g., '/player/a2dpsource'.
+        :param: dict properties: a dictionary defining the
+            player properties which may contain.
+        :return:
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            self._interface.RegisterPlayer(path, properties)
+        else:
+            raise Exception('Not handled with bluez 4')
+
+    def unregister_player(self, path):
+        """
+        Unregister sender end point.
+
+        :param: str path: a freely definable path name previously
+            used for registering via :py:meth:`register_player`
+        :return:
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            self._interface.UnregisterPlayer(path)
+        else:
+            raise Exception('Not handled with bluez 4')
 
 
 class BTMediaTransport(BTInterface):
@@ -139,6 +171,9 @@ class BTMediaTransport(BTInterface):
     * **Routing(str) [readonly]**: Optional. Indicates where is the
         transport being routed and may be 'HCI' or 'PCM'.
     """
+
+    MEDIA_TRANSPORT_INTERFACE_BLUEZ5 = 'org.bluez.MediaTransport1'
+
     def __init__(self, path, fd=None, adapter_id=None,
                  dev_path=None, dev_id=None):
         if (not path):
@@ -148,12 +183,47 @@ class BTMediaTransport(BTInterface):
             elif (dev_id):
                 if (adapter_id):
                     adapter = BTAdapter(adapter_id)
-                else:
-                    adapter = BTAdapter()
                     path = adapter.find_device(dev_id) + fd_suffix
             else:
                 raise BTDeviceNotSpecifiedException
-        BTInterface.__init__(self, path, 'org.bluez.MediaTransport')
+
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            BTInterface.__init__(self, path, 'org.bluez.MediaTransport')
+        else:
+            BTInterface.__init__(self, path, self.MEDIA_TRANSPORT_INTERFACE_BLUEZ5)
+            self._init_properties()
+
+    def _init_properties(self):
+        self._props_interface = dbus.Interface(self._object, self.DBUS_PROPERTIES)
+        self._properties = list(self._props_interface.GetAll(self.MEDIA_TRANSPORT_INTERFACE_BLUEZ5).keys())
+        self._register_signal_name(self.SIGNAL_PROPERTIES_CHANGED)
+
+    def get_property(self, name=None):
+        """
+        Helper to get a property value by name or all
+        properties as a dictionary.
+
+        See also :py:meth:`set_property`
+
+        :param str name: defaults to None which means all properties
+            in the object's dictionary are returned as a dict.
+            Otherwise, the property name key is used and its value
+            is returned.
+        :return: Property value by property key, or a dictionary of
+            all properties
+        :raises dbus.Exception: org.bluez.Error.DoesNotExist
+        :raises dbus.Exception: org.bluez.Error.InvalidArguments
+        """
+        #BlueZ 4
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            raise Exception('Not handled with bluez 4')
+
+        #BlueZ 5
+        else:
+            if (name):
+                return self._props_interface.Get(self.DEVICE_INTERFACE_BLUEZ5, name)
+            else:
+                return self._props_interface.GetAll(self.DEVICE_INTERFACE_BLUEZ5)
 
     def acquire(self, access_type):
         """
@@ -170,6 +240,24 @@ class BTMediaTransport(BTInterface):
         """
         return self._interface.Acquire(access_type)
 
+    def try_acquire(self, access_type):
+        """
+        Acquire transport file descriptor and the MTU for read
+        and/or write respectively.  Possible access_type:
+
+        * "r" : Read only access
+        * "w" : Write only access
+        * "rw": Read and write access
+
+        :param str access_type: as defined above.
+        :return: A tuple of the form (fd, write_mtu, read_mtu)
+        :rtype: tuple
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.TryAcquire(access_type)
+        else:
+            raise Exception('Not handled with bluez 4')
+
     def release(self, access_type):
         """
         Releases file descriptor.
@@ -184,7 +272,7 @@ class BTMediaTransport(BTInterface):
         """
         return self._interface.Release(access_type)
 
-
+#@TODO Change MediaEndpoint regarding BlueZ version
 class GenericEndpoint(dbus.service.Object):
     """
     Generic media endpoint service object class.

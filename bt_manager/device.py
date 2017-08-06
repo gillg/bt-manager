@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
-from interface import BTInterface
+import dbus
+from interface import BTInterface, translate_to_dbus_type
 from adapter import BTAdapter
 from exceptions import BTDeviceNotSpecifiedException
 
@@ -25,6 +26,9 @@ class BTGenericDevice(BTInterface):
     .. note:: This class should always be sub-classed with a concrete
         implementation of a bluez interface.
     """
+    DEVICE_INTERFACE_BLUEZ4 = 'org.bluez.Device'
+    DEVICE_INTERFACE_BLUEZ5 = 'org.bluez.Device1'
+
     def __init__(self, addr, dev_path=None, adapter_path=None,
                  adapter_id=None, dev_id=None):
         if (dev_path):
@@ -39,6 +43,74 @@ class BTGenericDevice(BTInterface):
         else:
             raise BTDeviceNotSpecifiedException
         BTInterface.__init__(self, path, addr)
+
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            self._init_properties()
+
+    def _init_properties(self):
+        self._props_interface = dbus.Interface(self._object, BTInterface.DBUS_PROPERTIES)
+        self._properties = list(self._props_interface.GetAll(self.DEVICE_INTERFACE_BLUEZ5).keys())
+        self._register_signal_name(self.SIGNAL_PROPERTIES_CHANGED)
+
+    def get_property(self, name=None):
+        """
+        Helper to get a property value by name or all
+        properties as a dictionary.
+
+        See also :py:meth:`set_property`
+
+        :param str name: defaults to None which means all properties
+            in the object's dictionary are returned as a dict.
+            Otherwise, the property name key is used and its value
+            is returned.
+        :return: Property value by property key, or a dictionary of
+            all properties
+        :raises KeyError: if the property key is not found in the
+            object's dictionary
+        :raises dbus.Exception: org.bluez.Error.DoesNotExist
+        :raises dbus.Exception: org.bluez.Error.InvalidArguments
+        """
+        #BlueZ 4
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            if (name):
+                return self._interface.GetProperties()[name]
+            else:
+                return self._interface.GetProperties()
+
+        #BlueZ 5
+        else:
+            if (name):
+                return self._props_interface.Get(self.DEVICE_INTERFACE_BLUEZ5, name)
+            else:
+                return self._props_interface.GetAll(self.DEVICE_INTERFACE_BLUEZ5)
+
+    def set_property(self, name, value):
+        """
+        Helper to set a property value by name, translating to correct
+        dbus type
+
+        See also :py:meth:`get_property`
+
+        :param str name: The property name in the object's dictionary
+            whose value shall be set.
+        :param value: Properties new value to be assigned.
+        :return:
+        :raises KeyError: if the property key is not found in the
+            object's dictionary
+        :raises dbus.Exception: org.bluez.Error.DoesNotExist
+        :raises dbus.Exception: org.bluez.Error.InvalidArguments
+        """
+        #BlueZ 4
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            typeof = type(self.get_property(name))
+            self._interface.SetProperty(name,
+                        translate_to_dbus_type(typeof, value))
+
+        #BlueZ 5
+        else:
+            typeof = type(self.get_property(name))
+            self._props_interface.Set(self.DEVICE_INTERFACE_BLUEZ5, name,
+                        translate_to_dbus_type(typeof, value))
 
 
 class BTDevice(BTGenericDevice):
@@ -101,17 +173,9 @@ class BTDevice(BTGenericDevice):
     :signal NodeRemoved(signal_name, user_arg, node_path): Signal notifying
         when a device node has been removed.
     """
-    SIGNAL_PROPERTIES_CHANGED = 'PropertiesChanged'
-    """
-    :signal PropertiesChanged(sig_name, user_arg, prop_name, prop_value):
-        Signal notifying when a property has changed. (Bluez 5)
-    """
-    DEVICE_INTERFACE_BLUEZ4 = 'org.bluez.Device'
-    DEVICE_INTERFACE_BLUEZ5 = 'org.bluez.Device1'
 
     def __init__(self, *args, **kwargs):
-        self._get_version()
-        if (self._version <= self.BLUEZ4_VERSION):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ4,
                                              *args, **kwargs)
             self._register_signal_name(BTDevice.SIGNAL_DISCONNECT_REQUESTED)
@@ -121,11 +185,6 @@ class BTDevice(BTGenericDevice):
         else:
             BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
                                              *args, **kwargs)
-
-    def _init_properties(self):
-        self._props_interface = dbus.Interface(self._object, BTInterface.DBUS_PROPERTIES)
-        self._properties = list(self._props_interface.GetAll(self.DEVICE_INTERFACE_BLUEZ5).keys())
-        self._register_signal_name(self.SIGNAL_PROPERTIES_CHANGED)
 
     def discover_services(self, pattern=''):
         """
@@ -145,7 +204,11 @@ class BTDevice(BTGenericDevice):
         :raises dbus.Exception: org.bluez.Error.Failed
         :raises dbus.Exception: org.bluez.Error.InProgress
         """
-        return self._interface.DiscoverServices(pattern)
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            return self._interface.DiscoverServices(pattern)
+        # BlueZ 5
+        else:
+            raise Exception('Not handled with bluez 5')
 
     def cancel_discovery(self):
         """
@@ -157,7 +220,11 @@ class BTDevice(BTGenericDevice):
         :raises dbus.Exception: org.bluez.Error.Failed
         :raises dbus.Exception: org.bluez.Error.NotAuthorized
         """
-        return self._interface.CancelDiscovery()
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            return self._interface.CancelDiscovery()
+        # BlueZ 5
+        else:
+            raise Exception('Not handled with bluez 5')
 
     def disconnect(self):
         """
@@ -177,3 +244,68 @@ class BTDevice(BTGenericDevice):
         :raises dbus.Exception: org.bluez.Error.NotConnected
         """
         return self._interface.Disconnect()
+
+    def pair(self):
+        """
+
+
+        :return:
+        :raises dbus.Exception: org.bluez.Error.NotConnected
+        :raises Exception: Not handled with bluez 4
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.Pair()
+        else:
+            raise Exception('Not handled with bluez 4')
+
+    def cancel_pairing(self):
+        """
+
+
+        :return:
+        :raises dbus.Exception: org.bluez.Error.NotConnected
+        :raises Exception: Not handled with bluez 4
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.CancelPairing()
+        else:
+            raise Exception('Not handled with bluez 4')
+
+    def connect(self):
+        """
+
+
+        :return:
+        :raises dbus.Exception: org.bluez.Error.NotConnected
+        :raises Exception: Not handled with bluez 4
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.Connect()
+        else:
+            raise Exception('Not handled with bluez 4')
+
+    def connect_profile(self, uuid):
+        """
+
+        :param str uuid: Profile UUID
+        :return:
+        :raises dbus.Exception: org.bluez.Error.NotConnected
+        :raises Exception: Not handled with bluez 4
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.ConnectProfile(uuid)
+        else:
+            raise Exception('Not handled with bluez 4')
+
+    def disconnect_profile(self, uuid):
+        """
+
+        :param str uuid: Profile UUID
+        :return:
+        :raises dbus.Exception: org.bluez.Error.NotConnected
+        :raises Exception: Not handled with bluez 4
+        """
+        if (self.get_version() > self.BLUEZ4_VERSION):
+            return self._interface.DisconnectProfile(uuid)
+        else:
+            raise Exception('Not handled with bluez 4')

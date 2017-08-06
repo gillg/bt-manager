@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 from interface import BTInterface
+from adapter import BTAdapter
+from dbus import DBusException
 
 
 class BTManager(BTInterface):
@@ -15,19 +17,9 @@ class BTManager(BTInterface):
     See also :py:class:`.BTAdapter`
     """
 
-    SIGNAL_INTERFACES_ADDED = 'InterfacesAdded'
-    """
-    :signal InterfacesAdded(signal_name, user_arg, object_path):
-        Signal notifying when an adapter is added.
-    """
     SIGNAL_ADAPTER_ADDED = 'AdapterAdded'
     """
     :signal AdapterAdded(signal_name, user_arg, object_path):
-        Signal notifying when an adapter is added.
-    """
-    SIGNAL_INTERFACES_REMOVED = 'InterfacesRemoved'
-    """
-    :signal InterfacesRemoved(signal_name, user_arg, object_path):
         Signal notifying when an adapter is added.
     """
     SIGNAL_ADAPTER_REMOVED = 'AdapterRemoved'
@@ -44,19 +36,9 @@ class BTManager(BTInterface):
     :signal DefaultAdapterChanged(signal_name, user_arg, object_path):
         Signal notifying when the default adapter has been changed.
     """
-    SIGNAL_PROPERTY_CHANGED = 'PropertyChanged'
-    """
-    :signal PropertyChanged(sig_name, user_arg, prop_name, prop_value):
-        Signal notifying when a property has changed. (Bluez 4)
-    """
-    ADAPTER_INTERFACE_BLUEZ5 = 'org.bluez.Adapter1'
-    """
-    @TODO remove this var, already prensent in BTAdapter
-    """
 
-    def __init__(self):
-        self._get_version()
-        if (self._version <= self.BLUEZ4_VERSION):
+    def __init__(self, adapter_path=None, adapter_id=None):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             BTInterface.__init__(self, '/', 'org.bluez.Manager')
             self._register_signal_name(BTManager.SIGNAL_ADAPTER_ADDED)
             self._register_signal_name(BTManager.SIGNAL_ADAPTER_REMOVED)
@@ -65,9 +47,17 @@ class BTManager(BTInterface):
             self._register_signal_name(BTManager.SIGNAL_PROPERTY_CHANGED)
 
         else:
-            BTInterface.__init__(self, '/', 'org.freedesktop.DBus.ObjectManager')
-            self._register_signal_name(BTManager.SIGNAL_INTERFACES_ADDED)
-            self._register_signal_name(BTManager.SIGNAL_INTERFACES_REMOVED)
+            BTInterface.__init__(self, '/', self.DBUS_OBJ_MANAGER)
+            self._register_signal_name(self.SIGNAL_INTERFACES_ADDED)
+            self._register_signal_name(self.SIGNAL_INTERFACES_REMOVED)
+
+        if (adapter_path is None):
+            if (adapter_id is None):
+                adapter_path = self.default_adapter()
+            else:
+                adapter_path = self.find_adapter(adapter_id)
+
+        self._adapter = BTAdapter(adapter_path)
 
     def get_property(self, name=None):
         """
@@ -88,7 +78,7 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
         #BlueZ 4
-        if (self._version <= self.BLUEZ4_VERSION):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             if (name):
                 return self._interface.GetProperties()[name]
             else:
@@ -113,12 +103,15 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.NoSuchAdapter
         """
         #BlueZ 4
-        if (self._version <= self.BLUEZ4_VERSION):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.DefaultAdapter()
 
         #BlueZ 5
         else:
-            return self.list_adapters().pop()
+            adapters = self.list_adapters()
+            if (len(adapters) == 0):
+                raise DBusException('org.bluez.Error.NoSuchAdapter')
+            return adapters.pop()
 
     def find_adapter(self, pattern):
         """
@@ -131,15 +124,16 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.NoSuchAdapter
         """
         #BlueZ 4
-        if (self._version <= self.BLUEZ4_VERSION):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.FindAdapter(pattern)
 
         #BlueZ 5
         else:
             for (key, object) in self._interface.GetManagedObjects().items():
-                if self.ADAPTER_INTERFACE_BLUEZ5 in object:
-                    if pattern in key or object[self.ADAPTER_INTERFACE_BLUEZ5]['Address'] == pattern:
+                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
+                    if pattern in key or object[BTAdapter.ADAPTER_INTERFACE_BLUEZ5]['Address'] == pattern:
                         return key
+            raise DBusException('org.bluez.Error.NoSuchAdapter')
 
     def list_adapters(self):
         """
@@ -152,7 +146,7 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.OutOfMemory
         """
         #BlueZ 4
-        if (self._version <= self.BLUEZ4_VERSION):
+        if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.ListAdapters()
 
         #BlueZ 5
@@ -160,6 +154,9 @@ class BTManager(BTInterface):
             objects = self._interface.GetManagedObjects().items()
             adapters = []
             for (key, object) in objects:
-                if self.ADAPTER_INTERFACE_BLUEZ5 in object:
+                if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
                     adapters.append(key)
             return adapters
+
+    def get_adapter(self):
+        return self._adapter

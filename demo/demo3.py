@@ -535,7 +535,7 @@ def media_sbc_sink_start(args):
         return
 
     try:
-        ep = bt_manager.SBCAudioSink(path=path, dev_path=dev_path)
+        ep = bt_manager.SBCAudioSink(path=path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep
@@ -606,7 +606,7 @@ def media_sbc_source_start(args):
         return
 
     try:
-        ep = bt_manager.SBCAudioSource(path=path, dev_path=dev_path)
+        ep = bt_manager.SBCAudioSource(path=path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep
@@ -772,7 +772,8 @@ signal.signal(signal.SIGALRM, timeout_handler)
 signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)
 
 try:
-    adapter = bt_manager.BTAdapter()
+    manager = bt_manager.BTManager()
+    adapter = manager.get_adapter()
     if (adapter._version <= bt_manager.BTAdapter.BLUEZ4_VERSION):
         adapter.add_signal_receiver(dump_signal,
                                     bt_manager.BTAdapter.SIGNAL_DEVICE_CREATED,
@@ -790,10 +791,10 @@ try:
                                     bt_manager.BTAdapter.SIGNAL_PROPERTY_CHANGED,
                                     None)
     else:
-        adapter._manager.add_signal_receiver(dump_signal,
+        manager.add_signal_receiver(dump_signal,
                                     bt_manager.BTManager.SIGNAL_INTERFACES_ADDED,
                                     None)
-        adapter._manager.add_signal_receiver(dump_signal,
+        manager.add_signal_receiver(dump_signal,
                                     bt_manager.BTManager.SIGNAL_INTERFACES_REMOVED,
                                     None)
         adapter.add_signal_receiver(dump_signal,

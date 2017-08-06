@@ -67,25 +67,51 @@ class BTSimpleInterface:
         implementation of a bluez interface which has no signals or
         properties.
     """
+    SIGNAL_INTERFACES_ADDED = 'InterfacesAdded'
+    """
+    :signal InterfacesAdded(signal_name, user_arg, object_path):
+        Signal notifying when an adapter is added.
+    """
+    SIGNAL_INTERFACES_REMOVED = 'InterfacesRemoved'
+    """
+    :signal InterfacesRemoved(signal_name, user_arg, object_path):
+        Signal notifying when an adapter is added.
+    """
+    SIGNAL_PROPERTIES_CHANGED = 'PropertiesChanged'
+    """
+    :signal PropertiesChanged(sig_name, user_arg, prop_name, prop_value):
+        Signal notifying when a property has changed. (Bluez 5)
+    """
+    SIGNAL_PROPERTY_CHANGED = 'PropertyChanged'
+    """
+    :signal PropertyChanged(sig_name, user_arg, prop_name, prop_value):
+        Signal notifying when a property has changed. (Bluez 4)
+    """
 
     BLUEZ_DBUS_OBJECT = 'org.bluez'
+    DBUS_OBJECT = 'org.freedesktop.DBus'
     BLUEZ4_VERSION = 1.2
 
     def __init__(self, path, addr):
         self._dbus_addr = addr
-        self._bus = dbus.SystemBus()
-        self._get_version()
+        self._init_bus()
+        self.get_version()
         self._object = self._bus.get_object(BTSimpleInterface.BLUEZ_DBUS_OBJECT, path)
         self._interface = dbus.Interface(self._object, addr)
         self._path = path
 
-    def _get_version(self):
-        if (self._version is None):
-            self._bus = dbus.SystemBus()
-            dbus_infos = self._bus.get_object('org.freedesktop.DBus', '/')
-            interface = dbus.Interface(dbus_infos, 'org.freedesktop.DBus')
+    def get_version(self):
+        if (not hasattr(self, '_version') or self._version is None):
+            self._init_bus()
+            dbus_infos = self._bus.get_object(self.DBUS_OBJECT, '/')
+            interface = dbus.Interface(dbus_infos, self.DBUS_OBJECT)
             self._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
             #interface.GetConnectionUnixProcessID(BTSimpleInterface.BLUEZ_DBUS_OBJECT)
+        return self._version
+
+    def _init_bus(self):
+        if (not hasattr(self, '_bus') or self._bus is None):
+            self._bus = dbus.SystemBus()
 
 
 # This class is not intended to be instantiated directly and should be
@@ -105,6 +131,7 @@ class BTInterface(BTSimpleInterface):
         and properties.
     """
     DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
+    DBUS_OBJ_MANAGER = 'org.freedesktop.DBus.ObjectManager'
 
     def __init__(self, path, addr):
         BTSimpleInterface.__init__(self, path, addr)

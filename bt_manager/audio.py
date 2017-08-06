@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
 import dbus.service
-from gi.repository import GObject
+try:
+  from gi.repository import GObject
+except ImportError:
+  import gobject as GObject
 import pprint
 import os
 
@@ -72,8 +75,12 @@ class BTAudioSource(BTAudio):
     See also: :py:class:`.BTAudio`
     """
     def __init__(self, *args, **kwargs):
-        BTGenericDevice.__init__(self, addr='org.bluez.AudioSource',
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            BTGenericDevice.__init__(self, addr='org.bluez.AudioSource',
                                  *args, **kwargs)
+        else:
+            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
+                                     *args, **kwargs)
 
 
 class BTAudioSink(BTAudio):
@@ -111,12 +118,16 @@ class BTAudioSink(BTAudio):
     """
 
     def __init__(self, *args, **kwargs):
-        BTGenericDevice.__init__(self, addr='org.bluez.AudioSink',
-                                 *args, **kwargs)
-        self._register_signal_name(BTAudioSink.SIGNAL_CONNECTED)
-        self._register_signal_name(BTAudioSink.SIGNAL_DISCONNECTED)
-        self._register_signal_name(BTAudioSink.SIGNAL_PLAYING)
-        self._register_signal_name(BTAudioSink.SIGNAL_STOPPED)
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            BTGenericDevice.__init__(self, addr='org.bluez.AudioSink',
+                                     *args, **kwargs)
+            self._register_signal_name(BTAudioSink.SIGNAL_CONNECTED)
+            self._register_signal_name(BTAudioSink.SIGNAL_DISCONNECTED)
+            self._register_signal_name(BTAudioSink.SIGNAL_PLAYING)
+            self._register_signal_name(BTAudioSink.SIGNAL_STOPPED)
+        else:
+            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
+                                     *args, **kwargs)
 
     def is_connected(self):
         """
@@ -126,7 +137,10 @@ class BTAudioSink(BTAudio):
         :return Connected: state of `Connected` attribute
         :rtype: boolean
         """
-        return self._interface.IsConnected()
+        if (self.get_version() <= self.BLUEZ4_VERSION):
+            return self._interface.IsConnected()
+        else:
+            return self.get_property('Connected')
 
 
 class SBCAudioCodec(GenericEndpoint):
@@ -160,7 +174,7 @@ class SBCAudioCodec(GenericEndpoint):
 
     See also: :py:class:`SBCAudioSink` and :py:class:`SBCAudioSource`
     """
-    def __init__(self, uuid, path):
+    def __init__(self, uuid, path, adapter_id=None, dev_path=None):
         config = SBCCodecConfig(SBCChannelMode.ALL,
                                 SBCSamplingFrequency.ALL,
                                 SBCAllocationMethod.ALL,
@@ -171,6 +185,8 @@ class SBCAudioCodec(GenericEndpoint):
         caps = SBCAudioCodec._make_config(config)
         codec = dbus.Byte(A2DP_CODECS['SBC'])
         delayed_reporting = dbus.Boolean(True)
+        self.adapter_id = adapter_id
+        self.dev_path = dev_path
         self.tag = None
         self.path = None
         self.user_cb = None
@@ -287,7 +303,7 @@ class SBCAudioCodec(GenericEndpoint):
         Should be called by subclass when it is ready
         to acquire the media transport file descriptor
         """
-        transport = BTMediaTransport(path=path)
+        transport = BTMediaTransport(path=path, adapter_id=self.adapter_id, dev_path=self.dev_path)
         (fd, read_mtu, write_mtu) = transport.acquire(access_type)
         self.fd = fd.take()   # We must do the clean-up later
         self.write_mtu = write_mtu
@@ -304,7 +320,7 @@ class SBCAudioCodec(GenericEndpoint):
         try:
             self._uninstall_transport_ready()
             os.close(self.fd)   # Clean-up previously taken fd
-            transport = BTMediaTransport(path=path)
+            transport = BTMediaTransport(path=path, adapter_id=self.adapter_id, dev_path=self.dev_path)
             transport.release(access_type)
         except:
             pass
@@ -513,9 +529,14 @@ class SBCAudioSink(SBCAudioCodec):
         """
         self.source = BTAudioSource(dev_path=path)
         self.state = self.source.State
-        self.source.add_signal_receiver(self._property_change_event_handler,
+        if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
+            self.source.add_signal_receiver(self._property_change_event_handler,
                                         BTAudioSource.SIGNAL_PROPERTY_CHANGED,  # noqa
                                         transport)
+        else:
+            self.source.add_signal_receiver(self._property_change_event_handler,
+                                            BTAudioSource.SIGNAL_PROPERTIES_CHANGED,  # noqa
+                                            transport)
 
 
 class SBCAudioSource(SBCAudioCodec):
@@ -555,6 +576,11 @@ class SBCAudioSource(SBCAudioCodec):
         """
         self.sink = BTAudioSink(dev_path=path)
         self.state = self.sink.State
-        self.sink.add_signal_receiver(self._property_change_event_handler,
+        if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
+            self.sink.add_signal_receiver(self._property_change_event_handler,
                                       BTAudioSource.SIGNAL_PROPERTY_CHANGED,  # noqa
                                       transport)
+        else:
+            self.sink.add_signal_receiver(self._property_change_event_handler,
+                                          BTAudioSource.SIGNAL_PROPERTIES_CHANGED,  # noqa
+                                          transport)

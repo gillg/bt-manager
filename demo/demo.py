@@ -5,7 +5,10 @@ import bt_manager
 import sys
 import dbus
 import dbus.mainloop.glib
-from gi.repository import GObject
+try:
+  from gi.repository import GObject
+except ImportError:
+  import gobject as GObject
 import signal
 from collections import namedtuple
 
@@ -772,7 +775,7 @@ signal.signal(signal.SIGALRM, timeout_handler)
 signal.setitimer(signal.ITIMER_REAL, 0.01, 0.01)
 
 try:
-    adapter = bt_manager.BTAdapter()
+    adapter = bt_manager.BTManager().get_adapter()
     if (adapter._version <= bt_manager.BTAdapter.BLUEZ4_VERSION):
         adapter.add_signal_receiver(dump_signal,
                                     bt_manager.BTAdapter.SIGNAL_DEVICE_CREATED,
@@ -799,7 +802,7 @@ try:
         adapter.add_signal_receiver(dump_signal,
                                     bt_manager.BTAdapter.SIGNAL_PROPERTIES_CHANGED,
                                     None,
-                                    addr=BTInterface.DBUS_PROPERTIES)
+                                    addr=bt_manager.BTInterface.DBUS_PROPERTIES)
 
 except dbus.exceptions.DBusException:
     print 'Unable to complete:', sys.exc_info()
