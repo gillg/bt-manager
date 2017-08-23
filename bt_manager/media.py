@@ -272,10 +272,9 @@ class BTMediaTransport(BTInterface):
         """
         return self._interface.Release(access_type)
 
-#@TODO Change MediaEndpoint regarding BlueZ version
 class GenericEndpoint(dbus.service.Object):
     """
-    Generic media endpoint service object class.
+    Generic media endpoint service object class for BlueZ 4.
 
     .. note:: GenericEndpoint can't be directly instantiated.
         It should be sub-classed and provides a template for
@@ -342,6 +341,91 @@ class GenericEndpoint(dbus.service.Object):
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint",
+                         in_signature="ay", out_signature="ay")
+    def SelectConfiguration(self, caps):
+        """
+        Initiates negotiations of the capabilities which should
+        be resolved by this method.
+
+        :param dict caps: Dictionary of device's capabilities
+            for resolving capability negotiation by comparing
+            to own capabilities.
+        :return config: The resolved configuration
+            to be used for the media transport.
+        :rtype: array{byte}
+        """
+        pass
+
+
+class GenericEndpoint5(dbus.service.Object):
+    """
+    Generic media endpoint service object class for BlueZ 5.
+
+    .. note:: GenericEndpoint can't be directly instantiated.
+        It should be sub-classed and provides a template for
+        implementing an endpoint service object.
+
+    :param str path: Freely definable object path for the
+        media endpoint e.g., '/endpoint/a2dpsink'.
+    """
+    def __init__(self, path):
+        bus = dbus.SystemBus()
+        super(GenericEndpoint5, self).__init__(bus, path)
+
+    def get_properties(self):
+        """
+        Returns the properties of the endpoint.  These should
+        be initialized by a suitable subclass implementation
+        by setting the `properties` class attribute.
+
+        :return properties: dictionary of endpoint's capabilties
+        :rtype: dict
+        """
+        return self.properties
+
+    # Service object entry points defined below here --
+    # you will need to implement these in your subclass
+    @dbus.service.method("org.bluez.MediaEndpoint1",
+                         in_signature="", out_signature="")
+    def Release(self):
+        """
+        Called by bluez to let us know our registration
+        has been released and the endpoint no longer exists
+
+        :return:
+        """
+        pass
+
+    @dbus.service.method("org.bluez.MediaEndpoint1",
+                         in_signature="", out_signature="")
+    def ClearConfiguration(self):
+        """
+        Called by bluez to let us know that the audio
+        streaming process has been reset, for whatever reason,
+        and we should now perform clean-up.
+
+        :return:
+        """
+        pass
+
+    @dbus.service.method("org.bluez.MediaEndpoint1",
+                         in_signature="oay", out_signature="")
+    def SetConfiguration(self, transport, config):
+        """
+        Provides a path to the media transport to use and
+        the active configuration that was negotiated.
+
+        :param str transport: Path to a device's file descriptor node
+            which can be used to acquire the media transport e.g.,
+            '/org/bluez/985/hci0/dev_00_11_67_D2_AB_EE/fd0'
+        :param array{byte} config: The configuration being used for
+            the media transport.
+
+        See also: :py:class:`.BTMediaTransport`
+        """
+        pass
+
+    @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="ay", out_signature="ay")
     def SelectConfiguration(self, caps):
         """

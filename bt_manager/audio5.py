@@ -9,7 +9,8 @@ import pprint
 import os
 
 from device import BTGenericDevice
-from media import GenericEndpoint, BTMediaTransport
+from media import GenericEndpoint5, BTMediaTransport
+from audio import BTAudioSink, BTAudioSource
 from codecs import SBCChannelMode, SBCSamplingFrequency, \
     SBCAllocationMethod, SBCSubbands, SBCBlocks, A2DP_CODECS, \
     SBCCodecConfig, SBCCodec
@@ -18,132 +19,7 @@ from exceptions import BTIncompatibleTransportAccessType, \
     BTInvalidConfiguration
 
 
-class BTAudio(BTGenericDevice):
-    """
-    Wrapper around dbus to encapsulate the org.bluez.Audio
-    interface.
-
-    :Properties:
-
-    * **State(str) [readonly]**: Possible values: "disconnected",
-        "connecting", "connected" with possible state transitions:
-
-      * "disconnected" -> "connecting"
-        Either an incoming or outgoing connection attempt
-        ongoing.
-      * "connecting" -> "disconnected"
-        Connection attempt failed
-      * "connecting" -> "connected"
-        Successfully connected
-      * "connected" -> "disconnected"
-        Disconnected from the remote device
-
-    See also: :py:class:`.BTGenericDevice` for setup params.
-    """
-    def __init__(self, *args, **kwargs):
-        BTGenericDevice.__init__(self, addr='org.bluez.Audio',
-                                 *args, **kwargs)
-
-    def connect(self):
-        """
-        Connect all supported audio profiles on the device.
-
-        :return:
-
-        .. note:: This may invoke any registered media
-            endpoints where media profiles are compatible.
-        """
-        return self._interface.Connect()
-
-    def disconnect(self):
-        """
-        Disconnect all audio profiles on the device
-
-        :return:
-
-        .. note:: This may release any registered media
-            endpoints where media profiles are compatible.
-        """
-        return self._interface.Disconnect()
-
-
-class BTAudioSource(BTAudio):
-    """
-    Wrapper around dbus to encapsulate the org.bluez.AudioSource
-    interface.
-
-    See also: :py:class:`.BTAudio`
-    """
-    def __init__(self, *args, **kwargs):
-        if (self.get_version() <= self.BLUEZ4_VERSION):
-            BTGenericDevice.__init__(self, addr='org.bluez.AudioSource',
-                                 *args, **kwargs)
-        else:
-            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
-                                     *args, **kwargs)
-
-
-class BTAudioSink(BTAudio):
-    """
-    Wrapper around dbus to encapsulate the org.bluez.AudioSink
-    interface
-
-    * **Connected(boolean) [readonly]**: Indicates if a stream is
-        setup to a A2DP sink on the remote device.
-    * **Playing(boolean) [readonly]**: Indicates if a stream is
-        active to a A2DP sink on the remote device.
-
-    See also: :py:class:`.BTAudio`
-    """
-
-    SIGNAL_CONNECTED = 'Connected'
-    """
-    :signal Connected(signal_name, user_arg): Sent when a successful
-        connection has been made to the remote A2DP Sink
-    """
-    SIGNAL_DISCONNECTED = 'Disconnected'
-    """
-    :signal Disconnected(signal_name, user_arg): Sent when the device has
-        been disconnected from.
-    """
-    SIGNAL_PLAYING = 'Playing'
-    """
-    :signal Playing(signal_name, user_arg): Sent when a stream
-        with remote device is started.
-    """
-    SIGNAL_STOPPED = 'Stopped'
-    """
-    :signal Stopped(signal_name, user_arg): Sent when a stream with
-        remote device is suspended.
-    """
-
-    def __init__(self, *args, **kwargs):
-        if (self.get_version() <= self.BLUEZ4_VERSION):
-            BTGenericDevice.__init__(self, addr='org.bluez.AudioSink',
-                                     *args, **kwargs)
-            self._register_signal_name(BTAudioSink.SIGNAL_CONNECTED)
-            self._register_signal_name(BTAudioSink.SIGNAL_DISCONNECTED)
-            self._register_signal_name(BTAudioSink.SIGNAL_PLAYING)
-            self._register_signal_name(BTAudioSink.SIGNAL_STOPPED)
-        else:
-            BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
-                                     *args, **kwargs)
-
-    def is_connected(self):
-        """
-        Returns `True` if a stream is setup to a A2DP sink on
-        the remote device, `False` otherwise.
-
-        :return Connected: state of `Connected` attribute
-        :rtype: boolean
-        """
-        if (self.get_version() <= self.BLUEZ4_VERSION):
-            return self._interface.IsConnected()
-        else:
-            return self.get_property('Connected')
-
-
-class SBCAudioCodec(GenericEndpoint):
+class SBCAudioCodec(GenericEndpoint5):
     """
     SBCAudioCodec is an implementation of a media endpoint that
     provides common functionality enabling SBC audio source and
@@ -195,7 +71,7 @@ class SBCAudioCodec(GenericEndpoint):
                                            'Codec': codec,
                                            'DelayReporting': delayed_reporting,
                                            'Capabilities': caps})
-        GenericEndpoint.__init__(self, path)
+        GenericEndpoint5.__init__(self, path)
 
     def _transport_ready_handler(self, fd, cb_condition):
         """
@@ -400,18 +276,17 @@ class SBCAudioCodec(GenericEndpoint):
         return SBCCodecConfig(channel_mode, frequency, allocation_method,
                               subbands, block_length, min_bitpool, max_bitpool)
 
-    # @TODO Change MediaEndpoint regarding BlueZ version
-    @dbus.service.method("org.bluez.MediaEndpoint",
+    @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def Release(self):
         pass
 
-    @dbus.service.method("org.bluez.MediaEndpoint",
+    @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def ClearConfiguration(self):
         pass
 
-    @dbus.service.method("org.bluez.MediaEndpoint",
+    @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="ay", out_signature="ay")
     def SelectConfiguration(self, caps):
         our_caps = SBCAudioCodec._parse_config(self.properties['Capabilities'])
@@ -485,7 +360,7 @@ class SBCAudioCodec(GenericEndpoint):
         dbus_val = SBCAudioCodec._make_config(selected_config)
         return dbus_val
 
-    @dbus.service.method("org.bluez.MediaEndpoint",
+    @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="oay", out_signature="")
     def SetConfiguration(self, transport, config):
         self._notify_media_transport_available(config.get('Device'), transport)
@@ -494,7 +369,7 @@ class SBCAudioCodec(GenericEndpoint):
         return pprint.pformat(self.__dict__)
 
 
-class SBCAudioSink(SBCAudioCodec):
+class SBCAudioSink5(SBCAudioCodec):
     """
     SBC audio sink media endpoint
 
@@ -531,14 +406,14 @@ class SBCAudioSink(SBCAudioCodec):
         self.source = BTAudioSource(dev_path=path)
         self.state = self.source.State
         if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
-            self.source.add_signal_receiver(self._property_change_event_handler,
-                                        BTAudioSource.SIGNAL_PROPERTY_CHANGED,  # noqa
-                                        transport)
+            raise Exception('Use audio5 for bluez5 only')
         else:
-            raise Exception('Use audio5 for bluez5')
+            self.source.add_signal_receiver(self._property_change_event_handler,
+                                            BTAudioSource.SIGNAL_PROPERTIES_CHANGED,  # noqa
+                                            transport)
 
 
-class SBCAudioSource(SBCAudioCodec):
+class SBCAudioSource5(SBCAudioCodec):
     """
     SBC audio source media endpoint.
 
@@ -576,8 +451,8 @@ class SBCAudioSource(SBCAudioCodec):
         self.sink = BTAudioSink(dev_path=path)
         self.state = self.sink.State
         if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
-            self.sink.add_signal_receiver(self._property_change_event_handler,
-                                      BTAudioSource.SIGNAL_PROPERTY_CHANGED,  # noqa
-                                      transport)
+            raise Exception('Use audio5 for bluez5 only')
         else:
-            raise Exception('Use audio5 for bluez5')
+            self.sink.add_signal_receiver(self._property_change_event_handler,
+                                          BTAudioSource.SIGNAL_PROPERTIES_CHANGED,  # noqa
+                                          transport)

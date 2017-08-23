@@ -535,7 +535,10 @@ def media_sbc_sink_start(args):
         return
 
     try:
-        ep = bt_manager.SBCAudioSink(path=path)
+        if (bt_manager.BTManager().get_version() <= bt_manager.BTAdapter.BLUEZ4_VERSION):
+            ep = bt_manager.SBCAudioSink(path=path)
+        else:
+            ep = bt_manager.SBCAudioSink5(path=path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep
@@ -606,7 +609,10 @@ def media_sbc_source_start(args):
         return
 
     try:
-        ep = bt_manager.SBCAudioSource(path=path)
+        if (bt_manager.BTManager().get_version() <= bt_manager.BTAdapter.BLUEZ4_VERSION):
+            ep = bt_manager.SBCAudioSource(path=path)
+        else:
+            ep = bt_manager.SBCAudioSource5(path=path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep

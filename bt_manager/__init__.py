@@ -23,6 +23,7 @@ from bt_manager.attributes import ATTRIBUTES             # noqa
 from bt_manager.audio import BTAudio, BTAudioSource      # noqa
 from bt_manager.audio import BTAudioSink, SBCAudioCodec  # noqa
 from bt_manager.audio import SBCAudioSource, SBCAudioSink  # noqa
+from bt_manager.audio5 import SBCAudioSource5, SBCAudioSink5  # noqa
 from bt_manager.cod import BTCoD                         # noqa
 from bt_manager.codecs import *                          # noqa
 from bt_manager.control import BTControl                 # noqa
