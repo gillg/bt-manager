@@ -394,6 +394,7 @@ class GenericEndpoint5(dbus.service.Object):
 
         :return:
         """
+        print('Callback Release')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
@@ -406,6 +407,7 @@ class GenericEndpoint5(dbus.service.Object):
 
         :return:
         """
+        print('Callback ClearConfiguration')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
@@ -423,6 +425,7 @@ class GenericEndpoint5(dbus.service.Object):
 
         See also: :py:class:`.BTMediaTransport`
         """
+        print('Callback SetConfiguration')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
@@ -439,4 +442,5 @@ class GenericEndpoint5(dbus.service.Object):
             to be used for the media transport.
         :rtype: array{byte}
         """
+        print('Callback SelectConfiguration')
         pass

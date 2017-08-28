@@ -279,16 +279,19 @@ class SBCAudioCodec(GenericEndpoint5):
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def Release(self):
+        print('Callback Release')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def ClearConfiguration(self):
+        print('Callback ClearConfiguration')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="ay", out_signature="ay")
     def SelectConfiguration(self, caps):
+        print('Callback SelectConfiguration')
         our_caps = SBCAudioCodec._parse_config(self.properties['Capabilities'])
         device_caps = SBCAudioCodec._parse_config(caps)
         frequency = SBCSamplingFrequency.FREQ_44_1KHZ
@@ -363,6 +366,7 @@ class SBCAudioCodec(GenericEndpoint5):
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="oay", out_signature="")
     def SetConfiguration(self, transport, config):
+        print('Callback SetConfiguration')
         self._notify_media_transport_available(config.get('Device'), transport)
 
     def __repr__(self):
