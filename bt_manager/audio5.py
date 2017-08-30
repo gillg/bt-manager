@@ -7,6 +7,7 @@ except ImportError:
   import gobject as GObject
 import pprint
 import os
+from syslog import syslog, LOG_INFO, LOG_DEBUG
 
 from device import BTGenericDevice
 from media import GenericEndpoint5, BTMediaTransport
@@ -167,7 +168,7 @@ class SBCAudioCodec(GenericEndpoint5):
                                           self.access_type)
             self.path = None
 
-    def _notify_media_transport_available(self, path, transport):
+    def _notify_media_transport_available(self, path, state, transport):
         """
         Subclass should implement this to trigger setup once
         a new media transport is available.
@@ -279,19 +280,19 @@ class SBCAudioCodec(GenericEndpoint5):
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def Release(self):
-        print('Callback Release')
+        syslog(LOG_DEBUG, 'Callback Release')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="", out_signature="")
     def ClearConfiguration(self):
-        print('Callback ClearConfiguration')
+        syslog(LOG_DEBUG, 'Callback ClearConfiguration')
         pass
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="ay", out_signature="ay")
     def SelectConfiguration(self, caps):
-        print('Callback SelectConfiguration')
+        syslog(LOG_DEBUG, 'Callback SelectConfiguration')
         our_caps = SBCAudioCodec._parse_config(self.properties['Capabilities'])
         device_caps = SBCAudioCodec._parse_config(caps)
         frequency = SBCSamplingFrequency.FREQ_44_1KHZ
@@ -361,13 +362,18 @@ class SBCAudioCodec(GenericEndpoint5):
         self.codec = SBCCodec(selected_config)
 
         dbus_val = SBCAudioCodec._make_config(selected_config)
+        syslog(LOG_DEBUG, 'Returned config')
+        syslog(LOG_DEBUG, repr(dbus_val))
         return dbus_val
 
     @dbus.service.method("org.bluez.MediaEndpoint1",
                          in_signature="oay", out_signature="")
     def SetConfiguration(self, transport, config):
-        print('Callback SetConfiguration')
-        self._notify_media_transport_available(config.get('Device'), transport)
+        syslog(LOG_DEBUG, 'Callback SetConfiguration')
+        syslog(LOG_DEBUG, repr(transport))
+        syslog(LOG_DEBUG, repr(config))
+        self._notify_media_transport_available(config.get('Device'), config.get('State'), transport)
+        return
 
     def __repr__(self):
         return pprint.pformat(self.__dict__)
@@ -402,13 +408,16 @@ class SBCAudioSink5(SBCAudioCodec):
             self._release_media_transport(transport, 'r')
         self.state = current_state
 
-    def _notify_media_transport_available(self, path, transport):
+    def _notify_media_transport_available(self, path, state, transport):
         """
         Called by the endpoint when a new media transport is
         available
         """
+        if (self.dev_path != None and path != self.dev_path):
+            syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
+            return
         self.source = BTAudioSource(dev_path=path)
-        self.state = self.source.State
+        self.state = state
         if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
             raise Exception('Use audio5 for bluez5 only')
         else:
@@ -447,14 +456,17 @@ class SBCAudioSource5(SBCAudioCodec):
             self._release_media_transport(transport, 'w')
         self.state = current_state
 
-    def _notify_media_transport_available(self, path, transport):
+    def _notify_media_transport_available(self, path, state, transport):
         """
         Called by the endpoint when a new media transport is
         available
         """
+        if (self.dev_path != None and path != self.dev_path):
+            syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
+            return
         self.sink = BTAudioSink(dev_path=path)
-        self.state = self.sink.State
-        if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
+        self.state = state
+        if (self.sink.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
             raise Exception('Use audio5 for bluez5 only')
         else:
             self.sink.add_signal_receiver(self._property_change_event_handler,

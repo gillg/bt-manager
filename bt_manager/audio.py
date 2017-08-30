@@ -7,6 +7,7 @@ except ImportError:
   import gobject as GObject
 import pprint
 import os
+from syslog import syslog, LOG_INFO
 
 from device import BTGenericDevice
 from media import GenericEndpoint, BTMediaTransport
@@ -528,6 +529,9 @@ class SBCAudioSink(SBCAudioCodec):
         Called by the endpoint when a new media transport is
         available
         """
+        if (self.dev_path != None and path != self.dev_path):
+            syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
+            return
         self.source = BTAudioSource(dev_path=path)
         self.state = self.source.State
         if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):
@@ -573,6 +577,9 @@ class SBCAudioSource(SBCAudioCodec):
         Called by the endpoint when a new media transport is
         available
         """
+        if (self.dev_path != None and path != self.dev_path):
+            syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
+            return
         self.sink = BTAudioSink(dev_path=path)
         self.state = self.sink.State
         if (self.source.get_version() <= BTGenericDevice.BLUEZ4_VERSION):

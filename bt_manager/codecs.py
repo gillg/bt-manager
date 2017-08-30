@@ -96,17 +96,19 @@ class SBCCodec:
         import sys
 
         try:
-            self.codec = ffi.verify(b'#include "rtpsbc.h"',
-                                    libraries=[b'rtpsbc'],
-                                    ext_package=b'rtpsbc')
+            self.codec = ffi.verify('#include "rtpsbc.h"',
+                                    libraries=['rtpsbc'],
+                                    ext_package='rtpsbc',
+                                    tmpdir='./__pycache__')
+
+            self.config = ffi.new('sbc_t *')
+            self.ts = ffi.new('unsigned int *', 0)
+            self.seq_num = ffi.new('unsigned int *', 0)
+            self._init_sbc_config(config)
+            self.codec.sbc_init(self.config, 0)
         except:
             print 'Exception:', sys.exc_info()[0]
-
-        self.config = ffi.new('sbc_t *')
-        self.ts = ffi.new('unsigned int *', 0)
-        self.seq_num = ffi.new('unsigned int *', 0)
-        self._init_sbc_config(config)
-        self.codec.sbc_init(self.config, 0)
+            print 'Have you install codecs ? (cd codecs && sudo make install)'
 
     def _init_sbc_config(self, config):
         """

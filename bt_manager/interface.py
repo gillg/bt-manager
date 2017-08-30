@@ -90,7 +90,8 @@ class BTSimpleInterface:
 
     BLUEZ_DBUS_OBJECT = 'org.bluez'
     DBUS_OBJECT = 'org.freedesktop.DBus'
-    BLUEZ4_VERSION = 1.2
+    #BLUEZ4_VERSION = 1.2
+    BLUEZ4_VERSION = 4
 
     def __init__(self, path, addr):
         self._dbus_addr = addr
@@ -100,14 +101,22 @@ class BTSimpleInterface:
         self._interface = dbus.Interface(self._object, addr)
         self._path = path
 
-    def get_version(self):
-        if (not hasattr(self, '_version') or self._version is None):
-            self._init_bus()
-            dbus_infos = self._bus.get_object(self.DBUS_OBJECT, '/')
-            interface = dbus.Interface(dbus_infos, self.DBUS_OBJECT)
-            self._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
-            #interface.GetConnectionUnixProcessID(BTSimpleInterface.BLUEZ_DBUS_OBJECT)
-        return self._version
+    @staticmethod
+    def get_version():
+        if (not hasattr(BTSimpleInterface, '_version') or BTSimpleInterface._version is None):
+            from subprocess import Popen, PIPE
+            from psutil import Process
+
+            dbus_infos = dbus.SystemBus().get_object(BTSimpleInterface.DBUS_OBJECT, '/')
+            interface = dbus.Interface(dbus_infos, BTSimpleInterface.DBUS_OBJECT)
+            #BTSimpleInterface._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
+            pid = int(interface.GetConnectionUnixProcessID(BTSimpleInterface.BLUEZ_DBUS_OBJECT))
+
+            daemon = Process(pid)
+            #daemon.cwd() should contain "bluetoothd"
+            cmd = Popen([daemon.exe(),"--version"], stdout=PIPE)
+            BTSimpleInterface._version = float(cmd.stdout.read())
+        return BTSimpleInterface._version
 
     def _init_bus(self):
         if (not hasattr(self, '_bus') or self._bus is None):
