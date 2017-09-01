@@ -5,7 +5,10 @@ import bt_manager
 import sys
 import dbus
 import dbus.mainloop.glib
-from gi.repository import GObject
+try:
+    from gi.repository import GObject
+except ImportError:
+    import gobject as GObject
 import signal
 from collections import namedtuple
 
@@ -536,9 +539,9 @@ def media_sbc_sink_start(args):
 
     try:
         if (bt_manager.BTManager().get_version() <= bt_manager.BTAdapter.BLUEZ4_VERSION):
-            ep = bt_manager.SBCAudioSink(path=path)
+            ep = bt_manager.SBCAudioSink(path=path, dev_path=dev_path)
         else:
-            ep = bt_manager.SBCAudioSink5(path=path)
+            ep = bt_manager.SBCAudioSink5(path=path, dev_path=dev_path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep
@@ -610,9 +613,9 @@ def media_sbc_source_start(args):
 
     try:
         if (bt_manager.BTManager().get_version() <= bt_manager.BTAdapter.BLUEZ4_VERSION):
-            ep = bt_manager.SBCAudioSource(path=path)
+            ep = bt_manager.SBCAudioSource(path=path, dev_path=dev_path)
         else:
-            ep = bt_manager.SBCAudioSource5(path=path)
+            ep = bt_manager.SBCAudioSource5(path=path, dev_path=dev_path)
         print('=========================================================')
         print(repr(ep))
         services[path] = ep

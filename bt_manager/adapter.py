@@ -167,14 +167,14 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             if (name):
                 return self._interface.GetProperties()[name]
             else:
                 return self._interface.GetProperties()
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             if (name):
                 return self._props_interface.Get(self.ADAPTER_INTERFACE_BLUEZ5, name)
@@ -197,17 +197,21 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             typeof = type(self.get_property(name))
-            self._interface.SetProperty(name,
-                        translate_to_dbus_type(typeof, value))
+            self._interface.SetProperty(
+                name,
+                translate_to_dbus_type(typeof, value)
+            )
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             typeof = type(self.get_property(name))
-            self._props_interface.Set(BTAdapter.ADAPTER_INTERFACE_BLUEZ5, name,
-                        translate_to_dbus_type(typeof, value))
+            self._props_interface.Set(
+                BTAdapter.ADAPTER_INTERFACE_BLUEZ5, name,
+                translate_to_dbus_type(typeof, value)
+            )
 
     def start_discovery(self):
         """
@@ -256,10 +260,10 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.FindDevice(dev_id)
-        #BlueZ 5
+        # BlueZ 5
         else:
             for (key, object) in self._ojects_interface.GetManagedObjects().items():
                 if self.DEVICE_INTERFACE_BLUEZ5 in object:
@@ -277,10 +281,10 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.Failed
         :raises dbus.Exception: org.bluez.Error.OutOfMemory
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.ListDevices()
-        #BlueZ 5
+        # BlueZ 5
         else:
             objects = self._ojects_interface.GetManagedObjects().items()
             devices = []
@@ -326,14 +330,14 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.Failed
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.CreatePairedDevice(dev_id,
                                                   agent_path,
                                                   capability,
                                                   reply_handler=cb_notify_device,  # noqa
                                                   error_handler=cb_notify_error)   # noqa
-        #BlueZ 5  TODO !?
+        # BlueZ 5  TODO !?
         else:
             pass
 
@@ -369,10 +373,10 @@ class BTAdapter(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.AlreadyExists
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.RegisterAgent(path, capability)
-        #BlueZ 5
+        # BlueZ 5
         else:
             return self._agent_interface.RegisterAgent(path, capability)
 
@@ -387,9 +391,9 @@ class BTAdapter(BTInterface):
         :return:
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.UnregisterAgent(path)
-        #BlueZ 5
+        # BlueZ 5
         else:
             return self._agent_interface.UnregisterAgent(path)

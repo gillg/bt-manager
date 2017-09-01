@@ -6,9 +6,9 @@ import sys
 import dbus
 import dbus.mainloop.glib
 try:
-  from gi.repository import GObject
+    from gi.repository import GObject
 except ImportError:
-  import gobject as GObject
+    import gobject as GObject
 import signal
 from collections import namedtuple
 

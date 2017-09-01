@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 import dbus.service
 try:
-  from gi.repository import GObject
+    from gi.repository import GObject
 except ImportError:
-  import gobject as GObject
+    import gobject as GObject
 import pprint
 import os
 from syslog import syslog, LOG_INFO
@@ -78,7 +78,7 @@ class BTAudioSource(BTAudio):
     def __init__(self, *args, **kwargs):
         if (self.get_version() <= self.BLUEZ4_VERSION):
             BTGenericDevice.__init__(self, addr='org.bluez.AudioSource',
-                                 *args, **kwargs)
+                                     *args, **kwargs)
         else:
             BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
                                      *args, **kwargs)
@@ -529,7 +529,7 @@ class SBCAudioSink(SBCAudioCodec):
         Called by the endpoint when a new media transport is
         available
         """
-        if (self.dev_path != None and path != self.dev_path):
+        if (self.dev_path is not None and path != self.dev_path):
             syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
             return
         self.source = BTAudioSource(dev_path=path)
@@ -577,7 +577,7 @@ class SBCAudioSource(SBCAudioCodec):
         Called by the endpoint when a new media transport is
         available
         """
-        if (self.dev_path != None and path != self.dev_path):
+        if (self.dev_path is not None and path != self.dev_path):
             syslog(LOG_INFO, 'Ignored device ' + path + ', different as specified')
             return
         self.sink = BTAudioSink(dev_path=path)

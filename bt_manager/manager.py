@@ -77,14 +77,14 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             if (name):
                 return self._interface.GetProperties()[name]
             else:
                 return self._interface.GetProperties()
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             adapters = {}
             adapters.Adapters = self.list_adapters()
@@ -102,11 +102,11 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.NoSuchAdapter
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.DefaultAdapter()
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             adapters = self.list_adapters()
             if (len(adapters) == 0):
@@ -123,11 +123,11 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         :raises dbus.Exception: org.bluez.Error.NoSuchAdapter
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.FindAdapter(pattern)
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             for (key, object) in self._interface.GetManagedObjects().items():
                 if BTAdapter.ADAPTER_INTERFACE_BLUEZ5 in object:
@@ -145,11 +145,11 @@ class BTManager(BTInterface):
         :raises dbus.Exception: org.bluez.Error.Failed
         :raises dbus.Exception: org.bluez.Error.OutOfMemory
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             return self._interface.ListAdapters()
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             objects = self._interface.GetManagedObjects().items()
             adapters = []

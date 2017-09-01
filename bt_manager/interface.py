@@ -90,7 +90,6 @@ class BTSimpleInterface:
 
     BLUEZ_DBUS_OBJECT = 'org.bluez'
     DBUS_OBJECT = 'org.freedesktop.DBus'
-    #BLUEZ4_VERSION = 1.2
     BLUEZ4_VERSION = 4
 
     def __init__(self, path, addr):
@@ -109,12 +108,12 @@ class BTSimpleInterface:
 
             dbus_infos = dbus.SystemBus().get_object(BTSimpleInterface.DBUS_OBJECT, '/')
             interface = dbus.Interface(dbus_infos, BTSimpleInterface.DBUS_OBJECT)
-            #BTSimpleInterface._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
+            # BTSimpleInterface._version = float(interface.GetNameOwner(BTSimpleInterface.BLUEZ_DBUS_OBJECT)[1:])
             pid = int(interface.GetConnectionUnixProcessID(BTSimpleInterface.BLUEZ_DBUS_OBJECT))
 
             daemon = Process(pid)
-            #daemon.cwd() should contain "bluetoothd"
-            cmd = Popen([daemon.exe(),"--version"], stdout=PIPE)
+            # daemon.cwd() should contain "bluetoothd"
+            cmd = Popen([daemon.exe(), "--version"], stdout=PIPE)
             BTSimpleInterface._version = float(cmd.stdout.read())
         return BTSimpleInterface._version
 

@@ -18,13 +18,15 @@ class BTControl(BTGenericDevice):
             self._register_signal_name(BTControl.SIGNAL_CONNECTED)
             self._register_signal_name(BTControl.SIGNAL_DISCONNECTED)
         else:
-            BTGenericDevice.__init__(self, addr=self.MEDIA_CONTROL_INTERFACE_BLUEZ5,
+            BTGenericDevice.__init__(self,
+                                     addr=self.MEDIA_CONTROL_INTERFACE_BLUEZ5,
                                      *args, **kwargs)
             self._init_properties()
 
     def _init_properties(self):
         self._props_interface = dbus.Interface(self._object, self.DBUS_PROPERTIES)
-        self._properties = list(self._props_interface.GetAll(self.MEDIA_CONTROL_INTERFACE_BLUEZ5).keys())
+        props = self._props_interface.GetAll(self.MEDIA_CONTROL_INTERFACE_BLUEZ5)
+        self._properties = list(props.keys())
         self._register_signal_name(self.SIGNAL_PROPERTIES_CHANGED)
 
     def get_property(self, name=None):
@@ -43,11 +45,11 @@ class BTControl(BTGenericDevice):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             raise Exception('Not handled with bluez 4')
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             if (name):
                 return self._props_interface.Get(self.DEVICE_INTERFACE_BLUEZ5, name)

@@ -214,11 +214,11 @@ class BTMediaTransport(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             raise Exception('Not handled with bluez 4')
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             if (name):
                 return self._props_interface.Get(self.DEVICE_INTERFACE_BLUEZ5, name)
@@ -271,6 +271,7 @@ class BTMediaTransport(BTInterface):
         :param str access_type: as defined above.
         """
         return self._interface.Release(access_type)
+
 
 class GenericEndpoint(dbus.service.Object):
     """

@@ -70,14 +70,14 @@ class BTGenericDevice(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             if (name):
                 return self._interface.GetProperties()[name]
             else:
                 return self._interface.GetProperties()
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             if (name):
                 return self._props_interface.Get(self.DEVICE_INTERFACE_BLUEZ5, name)
@@ -100,17 +100,19 @@ class BTGenericDevice(BTInterface):
         :raises dbus.Exception: org.bluez.Error.DoesNotExist
         :raises dbus.Exception: org.bluez.Error.InvalidArguments
         """
-        #BlueZ 4
+        # BlueZ 4
         if (self.get_version() <= self.BLUEZ4_VERSION):
             typeof = type(self.get_property(name))
-            self._interface.SetProperty(name,
-                        translate_to_dbus_type(typeof, value))
+            self._interface.SetProperty(
+                name, translate_to_dbus_type(typeof, value))
 
-        #BlueZ 5
+        # BlueZ 5
         else:
             typeof = type(self.get_property(name))
-            self._props_interface.Set(self.DEVICE_INTERFACE_BLUEZ5, name,
-                        translate_to_dbus_type(typeof, value))
+            self._props_interface.Set(
+                self.DEVICE_INTERFACE_BLUEZ5, name,
+                translate_to_dbus_type(typeof, value)
+            )
 
 
 class BTDevice(BTGenericDevice):
@@ -177,14 +179,14 @@ class BTDevice(BTGenericDevice):
     def __init__(self, *args, **kwargs):
         if (self.get_version() <= self.BLUEZ4_VERSION):
             BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ4,
-                                             *args, **kwargs)
+                                     *args, **kwargs)
             self._register_signal_name(BTDevice.SIGNAL_DISCONNECT_REQUESTED)
             self._register_signal_name(BTDevice.SIGNAL_NODE_CREATED)
             self._register_signal_name(BTDevice.SIGNAL_NODE_REMOVED)
 
         else:
             BTGenericDevice.__init__(self, addr=self.DEVICE_INTERFACE_BLUEZ5,
-                                             *args, **kwargs)
+                                     *args, **kwargs)
 
     def discover_services(self, pattern=''):
         """
