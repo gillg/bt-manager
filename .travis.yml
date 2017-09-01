@@ -1,11 +1,18 @@
 language: python
 
 python:
-  - "2.7_with_system_site_packages"
+  - 2.7
+  - 3.4
+
+virtualenv:
+  system_site_packages: true
+
+before_install:
+  - "sudo apt-get -qq update"
 
 install:
-  - "sudo apt-get install python-dbus python-gobject"
-  - "sudo pip install coveralls flake8 cffi"
+  - "sudo apt-get install libffi-dev"
+  - "sudo pip install --upgrade coverage flake8 cffi pydbus psutil"
   - "sudo make -C codecs install"
 
 script:

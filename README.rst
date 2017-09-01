@@ -56,6 +56,11 @@ Project resources
 Changelog
 =========
 
+v0.4.0
+------
+
+BlueZ 5.x support
+
 v0.3.0
 ------
 
