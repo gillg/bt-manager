@@ -37,7 +37,6 @@ from bt_manager.uuid import BTUUID, BTUUID16, BTUUID32   # noqa
 from bt_manager.uuid import BASE_UUID                    # noqa
 from bt_manager.vendors import VENDORS                   # noqa
 from bt_manager.audio import BTAudio, BTAudioSource, BTAudioSink      # noqa
-if (BTSimpleInterface.get_version() < BTSimpleInterface.BLUEZ4_VERSION):
-    from bt_manager.audio import SBCAudioSource, SBCAudioSink, SBCAudioCodec  # noqa
+from bt_manager.audio import SBCAudioSource, SBCAudioSink, SBCAudioCodec  # noqa
 from bt_manager.audio5 import SBCAudioSource5, SBCAudioSink5, SBCAudioCodec  # noqa
 from bt_manager.agent import BTAgent                     # noqa
