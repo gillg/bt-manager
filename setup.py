@@ -26,6 +26,7 @@ setup(
     install_requires=[
         'setuptools',
         'cffi >= 0.7',
+        'psutil'
     ],
     setup_requires=['cffi >= 0.7'],
     test_suite='nose.collector',
